@@ -8,6 +8,7 @@ import { Onboarding } from './pages/Onboarding'
 import { Dashboard } from './pages/Dashboard'
 import { AddProperty } from './pages/AddProperty'
 import { PropertyDetail } from './pages/PropertyDetail'
+import { Cashflow } from './pages/Cashflow'
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -115,6 +116,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <PropertyDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cashflow"
+        element={
+          <ProtectedRoute>
+            <Cashflow />
           </ProtectedRoute>
         }
       />

@@ -222,6 +222,28 @@ export function PropertyDetail() {
           </div>
         </div>
 
+        {/* Cashflow Summary */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Cashflow Tracking</h2>
+            <Link
+              to={`/cashflow?propertyId=${property.id}`}
+              className="text-primary-500 hover:text-primary-600 font-medium text-sm"
+            >
+              View Details →
+            </Link>
+          </div>
+          <p className="text-gray-600 text-sm mb-4">
+            Track monthly income and expenses for this property
+          </p>
+          <Link
+            to={`/cashflow?propertyId=${property.id}`}
+            className="inline-block bg-primary-500 text-white py-2 px-6 rounded-lg hover:bg-primary-600 transition-colors font-medium"
+          >
+            Manage Cashflow
+          </Link>
+        </div>
+
         {/* Value History */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Value History</h2>
