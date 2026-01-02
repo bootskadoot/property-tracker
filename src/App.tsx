@@ -6,6 +6,8 @@ import { Login } from './pages/Login'
 import { Signup } from './pages/Signup'
 import { Onboarding } from './pages/Onboarding'
 import { Dashboard } from './pages/Dashboard'
+import { AddProperty } from './pages/AddProperty'
+import { PropertyDetail } from './pages/PropertyDetail'
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -97,6 +99,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/add-property"
+        element={
+          <ProtectedRoute>
+            <AddProperty />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/property/:id"
+        element={
+          <ProtectedRoute>
+            <PropertyDetail />
           </ProtectedRoute>
         }
       />
