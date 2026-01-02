@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout /t 3)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nPhase 0: Project setup and foundation\n\n- Initialize React + Vite + TypeScript project\n- Install dependencies: React Router, Supabase, Tailwind, Recharts, date-fns\n- Configure Tailwind with Australian color scheme \\(deep blue + green\\)\n- Set up folder structure \\(components, pages, lib, hooks, types, constants, contexts\\)\n- Create comprehensive Supabase setup guide with database schema\n- Add .env.example for configuration\n\nGenerated with Claude Code\nhttps://claude.com/claude-code\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}
