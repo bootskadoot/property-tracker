@@ -7,7 +7,10 @@
       "Bash(npm run dev:*)",
       "Bash(timeout /t 3)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nPhase 0: Project setup and foundation\n\n- Initialize React + Vite + TypeScript project\n- Install dependencies: React Router, Supabase, Tailwind, Recharts, date-fns\n- Configure Tailwind with Australian color scheme \\(deep blue + green\\)\n- Set up folder structure \\(components, pages, lib, hooks, types, constants, contexts\\)\n- Create comprehensive Supabase setup guide with database schema\n- Add .env.example for configuration\n\nGenerated with Claude Code\nhttps://claude.com/claude-code\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nPhase 0: Project setup and foundation\n\n- Initialize React + Vite + TypeScript project\n- Install dependencies: React Router, Supabase, Tailwind, Recharts, date-fns\n- Configure Tailwind with Australian color scheme \\(deep blue + green\\)\n- Set up folder structure \\(components, pages, lib, hooks, types, constants, contexts\\)\n- Create comprehensive Supabase setup guide with database schema\n- Add .env.example for configuration\n\nGenerated with Claude Code\nhttps://claude.com/claude-code\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git config:*)",
+      "Bash(npm run build:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nPhase 1: Authentication and Onboarding\n\n- Create Supabase client with TypeScript database types\n- Implement AuthContext for global auth state management\n- Build reusable AuthForm component\n- Create Login and Signup pages with error handling\n- Build multi-step Onboarding wizard \\(5 steps\\):\n  * Welcome screen\n  * FIRE income goal\n  * Timeline \\(years to FIRE\\)\n  * Risk tolerance slider \\(1-10\\)\n  * Strategy preference \\(Buy & Hold, Value-Add, Development, Mixed\\)\n- Implement protected routes and auth redirects\n- Auto-redirect logic based on onboarding completion\n- Add LoadingSpinner for better UX\n- Create basic Dashboard with FIRE goals display\n\nGenerated with Claude Code\nhttps://claude.com/claude-code\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }

@@ -1,18 +1,117 @@
-import { BrowserRouter as Router } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './contexts/AuthContext'
+import { useAuth } from './hooks/useAuth'
+import { LoadingSpinner } from './components/LoadingSpinner'
+import { Login } from './pages/Login'
+import { Signup } from './pages/Signup'
+import { Onboarding } from './pages/Onboarding'
+import { Dashboard } from './pages/Dashboard'
+
+// Protected route wrapper
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return <LoadingSpinner />
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <>{children}</>
+}
+
+// Redirect authenticated users away from auth pages
+function AuthRoute({ children }: { children: React.ReactNode }) {
+  const { user, userProfile, loading } = useAuth()
+
+  if (loading) {
+    return <LoadingSpinner />
+  }
+
+  if (user) {
+    // Check if user has completed onboarding
+    const hasCompletedOnboarding = userProfile?.fire_target_income !== null
+
+    if (!hasCompletedOnboarding) {
+      return <Navigate to="/onboarding" replace />
+    }
+
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <>{children}</>
+}
+
+// Onboarding route (only accessible if logged in but not onboarded)
+function OnboardingRoute({ children }: { children: React.ReactNode }) {
+  const { user, userProfile, loading } = useAuth()
+
+  if (loading) {
+    return <LoadingSpinner />
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  const hasCompletedOnboarding = userProfile?.fire_target_income !== null
+
+  if (hasCompletedOnboarding) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <>{children}</>
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          <AuthRoute>
+            <Login />
+          </AuthRoute>
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          <AuthRoute>
+            <Signup />
+          </AuthRoute>
+        }
+      />
+      <Route
+        path="/onboarding"
+        element={
+          <OnboardingRoute>
+            <Onboarding />
+          </OnboardingRoute>
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  )
+}
 
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-blue-900">
-            Property Portfolio Tracker
-          </h1>
-          <p className="mt-4 text-gray-600">
-            Track your property investments and reach FIRE goals
-          </p>
-        </div>
-      </div>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
     </Router>
   )
 }
