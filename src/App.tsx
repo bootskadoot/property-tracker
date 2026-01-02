@@ -9,6 +9,7 @@ import { Dashboard } from './pages/Dashboard'
 import { AddProperty } from './pages/AddProperty'
 import { PropertyDetail } from './pages/PropertyDetail'
 import { Cashflow } from './pages/Cashflow'
+import { AdvancedDashboard } from './pages/AdvancedDashboard'
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -124,6 +125,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Cashflow />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/advanced-dashboard"
+        element={
+          <ProtectedRoute>
+            <AdvancedDashboard />
           </ProtectedRoute>
         }
       />

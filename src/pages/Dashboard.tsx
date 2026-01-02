@@ -142,6 +142,24 @@ export function Dashboard() {
           </div>
         )}
 
+        {/* Advanced Dashboard Link */}
+        <div className="bg-gradient-to-r from-primary-500 to-primary-700 rounded-lg shadow-md p-6 mb-6 text-white">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-xl font-bold mb-2">Advanced Analytics</h3>
+              <p className="text-primary-100">
+                View detailed insights, comparison charts, and export your portfolio data
+              </p>
+            </div>
+            <Link
+              to="/advanced-dashboard"
+              className="bg-white text-primary-700 py-2 px-6 rounded-lg hover:bg-gray-100 transition-colors font-medium whitespace-nowrap"
+            >
+              View Dashboard
+            </Link>
+          </div>
+        </div>
+
         {/* FIRE Goals */}
         {userProfile && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
