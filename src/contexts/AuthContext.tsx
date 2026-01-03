@@ -29,11 +29,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Fetch user profile from database
   const fetchUserProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // Add a 10-second timeout as safety net
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
+      )
+
+      const fetchPromise = supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .maybeSingle()
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any
 
       if (error) {
         console.error('Error fetching user profile:', error)
@@ -42,7 +49,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       return data
     } catch (err) {
-      console.error('Error fetching user profile:', err)
+      console.error('Error fetching user profile (timeout or error):', err)
+      // Return null instead of hanging - user can still use app
       return null
     }
   }
@@ -58,15 +66,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Check active session on mount
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        setUser(session?.user ?? null)
 
-      if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id)
-        setUserProfile(profile)
+        if (session?.user) {
+          const profile = await fetchUserProfile(session.user.id)
+          setUserProfile(profile)
+        }
+      } catch (error) {
+        console.error('Error checking user session:', error)
+        // Don't block the app - continue with no user
+      } finally {
+        // ALWAYS set loading to false, even if there's an error
+        setLoading(false)
       }
-
-      setLoading(false)
     }
 
     checkUser()
