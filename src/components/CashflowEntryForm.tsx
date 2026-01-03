@@ -21,8 +21,14 @@ export interface CashflowFormData {
 }
 
 export function CashflowEntryForm({ initialData, onSubmit, onCancel, loading }: CashflowEntryFormProps) {
+  // Convert date from YYYY-MM-DD to YYYY-MM for the month input
+  const convertToMonthInput = (dateStr: string | undefined) => {
+    if (!dateStr) return ''
+    return dateStr.substring(0, 7) // Extract YYYY-MM from YYYY-MM-DD
+  }
+
   const [formData, setFormData] = useState<CashflowFormData>({
-    month: initialData?.month || '',
+    month: convertToMonthInput(initialData?.month),
     rent_income: initialData?.rent_income || null,
     rent_frequency: initialData?.rent_frequency || 'monthly',
     mortgage_payment: initialData?.mortgage_payment || null,
@@ -34,7 +40,14 @@ export function CashflowEntryForm({ initialData, onSubmit, onCancel, loading }: 
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    await onSubmit(formData)
+
+    // Convert YYYY-MM format to YYYY-MM-01 for database
+    const formDataWithDate = {
+      ...formData,
+      month: formData.month ? `${formData.month}-01` : formData.month,
+    }
+
+    await onSubmit(formDataWithDate)
   }
 
   const handleNumberChange = (field: keyof CashflowFormData, value: string) => {
