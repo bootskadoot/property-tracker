@@ -36,39 +36,46 @@ export function AdvancedDashboard() {
 
         if (propertiesError) throw propertiesError
 
-        // Fetch value histories for all properties
-        const propertiesWithValues: PropertyWithValue[] = await Promise.all(
-          (propertiesData || []).map(async (property: any) => {
-            const { data: historyData } = await supabase
-              .from('value_history')
-              .select('*')
-              .eq('property_id', property.id)
-              .order('date_recorded', { ascending: false })
+        if (!propertiesData || propertiesData.length === 0) {
+          setProperties([])
+          setValueHistories(new Map())
+          setLoading(false)
+          return
+        }
 
-            const history = (historyData || []) as any
-            const currentValue = history[0]?.value || property.purchase_price
+        // Fetch ALL value histories in a single query (instead of 2N queries!)
+        const propertyIds = propertiesData.map((p: any) => p.id)
+        const { data: allValueHistories } = await supabase
+          .from('value_history')
+          .select('*')
+          .in('property_id', propertyIds)
+          .order('date_recorded', { ascending: false })
 
-            return {
-              ...property,
-              currentValue,
-            }
+        // Build value histories map AND get current values in one pass
+        const historiesMap = new Map<string, any[]>()
+        const latestValues = new Map<string, number>()
+
+        for (const property of propertiesData) {
+          const propertyId = (property as any).id
+          const propertyHistories = (allValueHistories || []).filter(
+            (h: any) => h.property_id === propertyId
+          )
+          historiesMap.set(propertyId, propertyHistories)
+          latestValues.set(
+            propertyId,
+            (propertyHistories[0] as any)?.value || (property as any).purchase_price
+          )
+        }
+
+        // Combine properties with their current values
+        const propertiesWithValues: PropertyWithValue[] = (propertiesData || []).map(
+          (property: any) => ({
+            ...property,
+            currentValue: latestValues.get(property.id) || property.purchase_price,
           })
         )
 
         setProperties(propertiesWithValues)
-
-        // Build value histories map
-        const historiesMap = new Map<string, any[]>()
-        for (const property of propertiesData || []) {
-          const { data: historyData } = await supabase
-            .from('value_history')
-            .select('*')
-            .eq('property_id', (property as any).id)
-            .order('date_recorded', { ascending: false })
-
-          historiesMap.set((property as any).id, historyData || [])
-        }
-
         setValueHistories(historiesMap)
       } catch (error) {
         console.error('Error fetching data:', error)

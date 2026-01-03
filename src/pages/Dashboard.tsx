@@ -26,39 +26,54 @@ export function Dashboard() {
 
       setLoading(true)
 
-      // Fetch properties
-      const { data: propertiesData, error: propertiesError } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+      try {
+        // Fetch properties
+        const { data: propertiesData, error: propertiesError } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
 
-      if (propertiesError) {
-        console.error('Error fetching properties:', propertiesError)
-        setLoading(false)
-        return
-      }
+        if (propertiesError) {
+          console.error('Error fetching properties:', propertiesError)
+          setLoading(false)
+          return
+        }
 
-      // Fetch latest value for each property
-      const propertiesWithValues = await Promise.all(
-        (propertiesData || []).map(async (property: any) => {
-          const { data: valueHistory } = await supabase
-            .from('value_history')
-            .select('value')
-            .eq('property_id', property.id)
-            .order('date_recorded', { ascending: false })
-            .limit(1)
-            .single()
+        if (!propertiesData || propertiesData.length === 0) {
+          setProperties([])
+          setLoading(false)
+          return
+        }
 
-          return {
-            ...property,
-            currentValue: (valueHistory as any)?.value || property.purchase_price,
+        // Fetch all value histories in a single query (instead of N queries)
+        const propertyIds = propertiesData.map((p: any) => p.id)
+        const { data: allValueHistories } = await supabase
+          .from('value_history')
+          .select('property_id, value, date_recorded')
+          .in('property_id', propertyIds)
+          .order('date_recorded', { ascending: false })
+
+        // Build a map of latest values per property
+        const latestValues = new Map<string, number>()
+        for (const history of (allValueHistories || []) as any[]) {
+          if (!latestValues.has(history.property_id)) {
+            latestValues.set(history.property_id, history.value)
           }
-        })
-      )
+        }
 
-      setProperties(propertiesWithValues)
-      setLoading(false)
+        // Combine properties with their current values
+        const propertiesWithValues = (propertiesData || []).map((property: any) => ({
+          ...property,
+          currentValue: latestValues.get(property.id) || property.purchase_price,
+        }))
+
+        setProperties(propertiesWithValues)
+        setLoading(false)
+      } catch (err) {
+        console.error('Unexpected error in fetchProperties:', err)
+        setLoading(false)
+      }
     }
 
     fetchProperties()
@@ -101,11 +116,7 @@ export function Dashboard() {
             Welcome back!
           </h2>
           <p className="text-gray-600">
-            {userProfile?.subscription_tier === 'free' ? (
-              <>Free tier - {properties.length}/2 properties</>
-            ) : (
-              <>Pro tier - {properties.length} {properties.length === 1 ? 'property' : 'properties'}</>
-            )}
+            {properties.length} {properties.length === 1 ? 'property' : 'properties'}
           </p>
         </div>
 

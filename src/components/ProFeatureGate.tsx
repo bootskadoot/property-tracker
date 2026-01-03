@@ -1,13 +1,20 @@
-import { ReactNode, useState } from 'react'
-import { useAuth } from '../hooks/useAuth'
-import { UpgradePrompt } from './UpgradePrompt'
+import { ReactNode } from 'react'
 
 interface ProFeatureGateProps {
   children: ReactNode
   featureName?: string
 }
 
-export function ProFeatureGate({ children, featureName = 'this feature' }: ProFeatureGateProps) {
+export function ProFeatureGate({ children }: ProFeatureGateProps) {
+  // TEMPORARY: All features unlocked for testing
+  // TODO: Re-enable when payment system is ready
+  return <>{children}</>
+
+  /* COMMENTED OUT - Will re-enable when payment is ready
+  import { useState } from 'react'
+  import { useAuth } from '../hooks/useAuth'
+  import { UpgradePrompt } from './UpgradePrompt'
+
   const { userProfile } = useAuth()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const isPro = userProfile?.subscription_tier === 'pro'
@@ -19,12 +26,10 @@ export function ProFeatureGate({ children, featureName = 'this feature' }: ProFe
   return (
     <>
       <div className="relative">
-        {/* Blurred Content */}
         <div className="filter blur-sm pointer-events-none select-none">
           {children}
         </div>
 
-        {/* Overlay */}
         <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm">
           <div className="bg-white rounded-lg shadow-xl p-8 max-w-md text-center border-2 border-primary-200">
             <div className="inline-block p-3 bg-accent-100 rounded-full mb-4">
@@ -51,4 +56,5 @@ export function ProFeatureGate({ children, featureName = 'this feature' }: ProFe
       )}
     </>
   )
+  */
 }

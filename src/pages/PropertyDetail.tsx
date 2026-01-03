@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Home, DollarSign, TrendingUp, Percent } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
@@ -18,48 +18,86 @@ export function PropertyDetail() {
   const [property, setProperty] = useState<Property | null>(null)
   const [valueHistory, setValueHistory] = useState<ValueHistory[]>([])
   const [currentValue, setCurrentValue] = useState(0)
+  const [showAddValuation, setShowAddValuation] = useState(false)
+  const [addingValuation, setAddingValuation] = useState(false)
+  const [newValue, setNewValue] = useState('')
+  const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0])
+  const [newSource, setNewSource] = useState('')
 
-  useEffect(() => {
-    async function fetchPropertyData() {
-      if (!user || !id) return
+  const fetchPropertyData = async () => {
+    if (!user || !id) return
 
-      setLoading(true)
+    setLoading(true)
 
-      // Fetch property
-      const { data: propertyData, error: propertyError } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single()
+    // Fetch property
+    const { data: propertyData, error: propertyError } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
 
-      if (propertyError) {
-        console.error('Error fetching property:', propertyError)
-        navigate('/dashboard')
-        return
-      }
-
-      setProperty(propertyData as any)
-
-      // Fetch value history
-      const { data: historyData, error: historyError } = await supabase
-        .from('value_history')
-        .select('*')
-        .eq('property_id', id)
-        .order('date_recorded', { ascending: false })
-
-      if (historyError) {
-        console.error('Error fetching value history:', historyError)
-      }
-
-      const history = (historyData || []) as any
-      setValueHistory(history)
-      setCurrentValue(history[0]?.value || (propertyData as any).purchase_price)
-      setLoading(false)
+    if (propertyError) {
+      console.error('Error fetching property:', propertyError)
+      navigate('/dashboard')
+      return
     }
 
+    setProperty(propertyData as any)
+
+    // Fetch value history
+    const { data: historyData, error: historyError } = await supabase
+      .from('value_history')
+      .select('*')
+      .eq('property_id', id)
+      .order('date_recorded', { ascending: false })
+
+    if (historyError) {
+      console.error('Error fetching value history:', historyError)
+    }
+
+    const history = (historyData || []) as any
+    setValueHistory(history)
+    setCurrentValue(history[0]?.value || (propertyData as any).purchase_price)
+    setLoading(false)
+  }
+
+  useEffect(() => {
     fetchPropertyData()
   }, [user, id, navigate])
+
+  const handleAddValuation = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!id) return
+
+    setAddingValuation(true)
+
+    const { error } = await supabase
+      .from('value_history')
+      .insert({
+        property_id: id,
+        value: parseFloat(newValue),
+        date_recorded: newDate,
+        source: newSource || 'Manual Entry',
+      } as any)
+
+    if (error) {
+      console.error('Error adding valuation:', error)
+      alert('Failed to add valuation')
+      setAddingValuation(false)
+      return
+    }
+
+    // Refresh data
+    await fetchPropertyData()
+
+    // Reset form
+    setNewValue('')
+    setNewDate(new Date().toISOString().split('T')[0])
+    setNewSource('')
+    setShowAddValuation(false)
+    setAddingValuation(false)
+  }
 
   if (loading) {
     return <LoadingSpinner />
@@ -246,14 +284,88 @@ export function PropertyDetail() {
 
         {/* Value History */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Value History</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Value History</h2>
+            <button
+              onClick={() => setShowAddValuation(!showAddValuation)}
+              className="bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 transition-colors font-medium text-sm"
+            >
+              {showAddValuation ? 'Cancel' : 'Update Market Value'}
+            </button>
+          </div>
+
+          {showAddValuation && (
+            <form onSubmit={handleAddValuation} className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Valuation</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="newValue" className="block text-sm font-medium text-gray-700 mb-1">
+                    Market Value (AUD) *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-gray-500">$</span>
+                    <input
+                      id="newValue"
+                      type="number"
+                      value={newValue}
+                      onChange={(e) => setNewValue(e.target.value)}
+                      required
+                      min="0"
+                      step="1000"
+                      className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="650000"
+                      disabled={addingValuation}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="newDate" className="block text-sm font-medium text-gray-700 mb-1">
+                    Valuation Date *
+                  </label>
+                  <input
+                    id="newDate"
+                    type="date"
+                    value={newDate}
+                    onChange={(e) => setNewDate(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    disabled={addingValuation}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="newSource" className="block text-sm font-medium text-gray-700 mb-1">
+                    Source
+                  </label>
+                  <input
+                    id="newSource"
+                    type="text"
+                    value={newSource}
+                    onChange={(e) => setNewSource(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="e.g., Domain estimate, Bank valuation"
+                    disabled={addingValuation}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={addingValuation}
+                  className="bg-accent-500 text-white py-2 px-6 rounded-lg hover:bg-accent-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {addingValuation ? 'Adding...' : 'Add Valuation'}
+                </button>
+              </div>
+            </form>
+          )}
 
           {valueHistory.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500 mb-4">No value history entries yet</p>
-              <button className="text-primary-500 hover:text-primary-600 font-medium">
-                Add Value Entry
-              </button>
+              <p className="text-sm text-gray-400">Click "Update Market Value" to add your first valuation</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

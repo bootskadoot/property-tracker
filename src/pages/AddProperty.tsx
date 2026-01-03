@@ -8,13 +8,16 @@ export function AddProperty() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [propertyCount, setPropertyCount] = useState(0)
-  const [canAddProperty, setCanAddProperty] = useState(true)
+  const [canAddProperty, setCanAddProperty] = useState<boolean | null>(null)
+  const [checkingLimit, setCheckingLimit] = useState(true)
   const { user, userProfile } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
     async function checkPropertyLimit() {
-      if (!user) return
+      if (!user || !userProfile) return
+
+      setCheckingLimit(true)
 
       const { data, error: countError } = await supabase
         .from('properties')
@@ -23,15 +26,23 @@ export function AddProperty() {
 
       if (countError) {
         console.error('Error checking property count:', countError)
+        setCheckingLimit(false)
         return
       }
 
       const count = data?.length || 0
       setPropertyCount(count)
 
-      // Check if user can add more properties
-      const isFree = userProfile?.subscription_tier === 'free'
+      // TEMPORARY: Remove property limit for testing
+      // TODO: Re-enable when payment system is ready
+      setCanAddProperty(true)
+
+      /* COMMENTED OUT - Will re-enable when payment is ready
+      const isFree = userProfile.subscription_tier === 'free'
       setCanAddProperty(!isFree || count < 2)
+      */
+
+      setCheckingLimit(false)
     }
 
     checkPropertyLimit()
@@ -93,8 +104,20 @@ export function AddProperty() {
     }
   }
 
+  // Show loading while checking limit
+  if (checkingLimit) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+          <p className="mt-2 text-gray-600">Checking property limit...</p>
+        </div>
+      </div>
+    )
+  }
+
   // Show paywall if user has reached limit
-  if (!canAddProperty) {
+  if (canAddProperty === false) {
     return (
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white border-b border-gray-200">
@@ -192,11 +215,7 @@ export function AddProperty() {
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Add New Property</h1>
             <p className="text-gray-600">
-              {userProfile?.subscription_tier === 'free' ? (
-                <>Property {propertyCount + 1} of 2 (Free tier)</>
-              ) : (
-                <>Add a property to your portfolio</>
-              )}
+              Add a property to your portfolio
             </p>
           </div>
 

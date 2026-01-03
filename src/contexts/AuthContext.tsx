@@ -28,18 +28,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Fetch user profile from database
   const fetchUserProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
 
-    if (error) {
-      console.error('Error fetching user profile:', error)
+      if (error) {
+        console.error('Error fetching user profile:', error)
+        return null
+      }
+
+      return data
+    } catch (err) {
+      console.error('Error fetching user profile:', err)
       return null
     }
-
-    return data
   }
 
   // Refresh user profile (used after onboarding)
