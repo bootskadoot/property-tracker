@@ -86,15 +86,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkUser()
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null)
 
-      if (session?.user) {
+      // Only fetch profile on actual sign-in events, not on every tab focus
+      // This prevents unnecessary refetches when switching tabs
+      if (session?.user && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
         const profile = await fetchUserProfile(session.user.id)
         setUserProfile(profile)
-      } else {
+      } else if (!session?.user) {
         setUserProfile(null)
       }
+      // If event is 'TOKEN_REFRESHED', keep existing profile - don't refetch
     })
 
     return () => subscription.unsubscribe()
