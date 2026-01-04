@@ -27,12 +27,12 @@ export function CashflowChart({ cashflows }: CashflowChartProps) {
     // Net cashflow
     const net = income - expenses
 
-    // Format month for display
-    const monthDate = new Date(entry.month + '-01')
-    const monthLabel = format(monthDate, 'MMM yyyy')
+    // Format effective date for display
+    const effectiveDate = new Date((entry as any).effective_from)
+    const effectiveLabel = format(effectiveDate, 'dd MMM yyyy')
 
     return {
-      month: monthLabel,
+      month: effectiveLabel,
       income: Math.round(income),
       expenses: Math.round(expenses),
       net: Math.round(net),

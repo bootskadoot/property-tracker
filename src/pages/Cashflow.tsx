@@ -69,7 +69,7 @@ export function Cashflow() {
         .from('cashflow')
         .select('*')
         .eq('property_id', selectedPropertyId)
-        .order('month', { ascending: false })
+        .order('effective_from', { ascending: false })
 
       if (error) {
         console.error('Error fetching cashflows:', error)
@@ -124,7 +124,7 @@ export function Cashflow() {
         .from('cashflow')
         .select('*')
         .eq('property_id', selectedPropertyId)
-        .order('month', { ascending: false })
+        .order('effective_from', { ascending: false })
 
       if (fetchError) throw fetchError
 
@@ -287,7 +287,7 @@ export function Cashflow() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Month
+                      Effective From
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Income
@@ -305,8 +305,8 @@ export function Cashflow() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {cashflows.map((entry) => {
-                    const monthDate = new Date(entry.month + '-01')
-                    const monthLabel = format(monthDate, 'MMMM yyyy')
+                    const effectiveDate = new Date((entry as any).effective_from)
+                    const effectiveLabel = format(effectiveDate, 'dd MMM yyyy')
 
                     // Calculate values (simplified for table)
                     const income = entry.rent_income || 0
@@ -316,7 +316,10 @@ export function Cashflow() {
                     return (
                       <tr key={entry.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {monthLabel}
+                          <div>
+                            <div className="font-medium">{effectiveLabel}</div>
+                            <div className="text-xs text-gray-500">Rates apply from this date forward</div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-accent-600">
                           ${income.toFixed(0)}

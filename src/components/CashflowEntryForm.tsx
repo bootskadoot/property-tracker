@@ -10,7 +10,7 @@ interface CashflowEntryFormProps {
 }
 
 export interface CashflowFormData {
-  month: string
+  effective_from: string
   rent_income: number | null
   rent_frequency: 'weekly' | 'monthly' | null
   mortgage_payment: number | null
@@ -21,14 +21,8 @@ export interface CashflowFormData {
 }
 
 export function CashflowEntryForm({ initialData, onSubmit, onCancel, loading }: CashflowEntryFormProps) {
-  // Convert date from YYYY-MM-DD to YYYY-MM for the month input
-  const convertToMonthInput = (dateStr: string | undefined) => {
-    if (!dateStr) return ''
-    return dateStr.substring(0, 7) // Extract YYYY-MM from YYYY-MM-DD
-  }
-
   const [formData, setFormData] = useState<CashflowFormData>({
-    month: convertToMonthInput(initialData?.month),
+    effective_from: initialData?.effective_from || new Date().toISOString().split('T')[0],
     rent_income: initialData?.rent_income || null,
     rent_frequency: initialData?.rent_frequency || 'monthly',
     mortgage_payment: initialData?.mortgage_payment || null,
@@ -40,14 +34,7 @@ export function CashflowEntryForm({ initialData, onSubmit, onCancel, loading }: 
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-
-    // Convert YYYY-MM format to YYYY-MM-01 for database
-    const formDataWithDate = {
-      ...formData,
-      month: formData.month ? `${formData.month}-01` : formData.month,
-    }
-
-    await onSubmit(formDataWithDate)
+    await onSubmit(formData)
   }
 
   const handleNumberChange = (field: keyof CashflowFormData, value: string) => {
@@ -57,21 +44,23 @@ export function CashflowEntryForm({ initialData, onSubmit, onCancel, loading }: 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Month Selection */}
+      {/* Effective From Date */}
       <div>
-        <label htmlFor="month" className="block text-sm font-medium text-gray-700 mb-1">
-          Month *
+        <label htmlFor="effective_from" className="block text-sm font-medium text-gray-700 mb-1">
+          Effective From Date *
         </label>
         <input
-          id="month"
-          type="month"
-          value={formData.month}
-          onChange={(e) => setFormData({ ...formData, month: e.target.value })}
+          id="effective_from"
+          type="date"
+          value={formData.effective_from}
+          onChange={(e) => setFormData({ ...formData, effective_from: e.target.value })}
           required
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           disabled={loading}
         />
-        <p className="mt-1 text-xs text-gray-500">Select the month for this cashflow entry</p>
+        <p className="mt-1 text-xs text-gray-500">
+          These rates will apply from this date forward until you create a new configuration
+        </p>
       </div>
 
       {/* Income Section */}

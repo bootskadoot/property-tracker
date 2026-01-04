@@ -9,25 +9,28 @@ interface CashflowSummaryProps {
 }
 
 export function CashflowSummary({ cashflows }: CashflowSummaryProps) {
-  // Calculate total monthly income and expenses
+  // Get the most recent configuration (current cashflow rates)
+  // Cashflows are already sorted by effective_from DESC
+  const currentConfig = cashflows[0]
+
+  // Calculate monthly income and expenses from current configuration
   const calculateMonthlyTotals = () => {
-    let totalIncome = 0
-    let totalExpenses = 0
+    if (!currentConfig) {
+      return { totalIncome: 0, totalExpenses: 0 }
+    }
 
-    cashflows.forEach((entry) => {
-      // Income
-      if (entry.rent_income && entry.rent_frequency) {
-        totalIncome += normalizeToMonthly(entry.rent_income, entry.rent_frequency)
-      }
+    // Income
+    const totalIncome = currentConfig.rent_income && currentConfig.rent_frequency
+      ? normalizeToMonthly(currentConfig.rent_income, currentConfig.rent_frequency)
+      : 0
 
-      // Expenses
-      const mortgage = entry.mortgage_payment || 0
-      const insurance = entry.insurance_annual ? annualToMonthly(entry.insurance_annual) : 0
-      const ratesStrata = entry.rates_strata_quarterly ? quarterlyToMonthly(entry.rates_strata_quarterly) : 0
-      const other = entry.other_expenses || 0
+    // Expenses
+    const mortgage = currentConfig.mortgage_payment || 0
+    const insurance = currentConfig.insurance_annual ? annualToMonthly(currentConfig.insurance_annual) : 0
+    const ratesStrata = currentConfig.rates_strata_quarterly ? quarterlyToMonthly(currentConfig.rates_strata_quarterly) : 0
+    const other = currentConfig.other_expenses || 0
 
-      totalExpenses += mortgage + insurance + ratesStrata + other
-    })
+    const totalExpenses = mortgage + insurance + ratesStrata + other
 
     return { totalIncome, totalExpenses }
   }
