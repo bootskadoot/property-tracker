@@ -33,14 +33,17 @@ export function Dashboard() {
       if (!user) return
 
       setLoading(true)
+      const startTime = performance.now()
 
       try {
         // Fetch properties
+        const propertiesStart = performance.now()
         const { data: propertiesData, error: propertiesError } = await supabase
           .from('properties')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
+        console.log(`[Dashboard] Properties query: ${(performance.now() - propertiesStart).toFixed(0)}ms`)
 
         if (propertiesError) {
           console.error('Error fetching properties:', propertiesError)
@@ -51,18 +54,32 @@ export function Dashboard() {
         if (!propertiesData || propertiesData.length === 0) {
           setProperties([])
           setLoading(false)
+          console.log(`[Dashboard] Total load time: ${(performance.now() - startTime).toFixed(0)}ms (no properties)`)
           return
         }
 
-        // Fetch all value histories in a single query (instead of N queries)
         const propertyIds = propertiesData.map((p: any) => p.id)
-        const { data: allValueHistories } = await supabase
-          .from('value_history')
-          .select('property_id, value, date_recorded')
-          .in('property_id', propertyIds)
-          .order('date_recorded', { ascending: false })
 
-        // Build a map of latest values per property AND value histories map
+        // Fetch value histories AND cashflows in PARALLEL (not sequential)
+        const parallelStart = performance.now()
+        const [valueHistoriesResult, cashflowsResult] = await Promise.all([
+          supabase
+            .from('value_history')
+            .select('property_id, value, date_recorded')
+            .in('property_id', propertyIds)
+            .order('date_recorded', { ascending: false }),
+          supabase
+            .from('cashflow')
+            .select('*')
+            .in('property_id', propertyIds)
+            .order('effective_from', { ascending: false })
+        ])
+        console.log(`[Dashboard] Parallel queries (value_history + cashflow): ${(performance.now() - parallelStart).toFixed(0)}ms`)
+
+        const allValueHistories = valueHistoriesResult.data
+        const allCashflows = cashflowsResult.data
+
+        // Build value histories map and latest values
         const latestValues = new Map<string, number>()
         const historiesMap = new Map<string, any[]>()
 
@@ -77,6 +94,14 @@ export function Dashboard() {
           }
         }
 
+        // Build cashflows map
+        const cashflowMap = new Map<string, Cashflow[]>()
+        for (const propertyId of propertyIds) {
+          const propertyCashflows = (allCashflows || [])
+            .filter((cf: any) => cf.property_id === propertyId)
+          cashflowMap.set(propertyId, propertyCashflows)
+        }
+
         // Combine properties with their current values
         const propertiesWithValues = (propertiesData || []).map((property: any) => ({
           ...property,
@@ -85,23 +110,12 @@ export function Dashboard() {
 
         setProperties(propertiesWithValues)
         setValueHistories(historiesMap)
+        setCashflowsByProperty(cashflowMap)
 
-        // Fetch all cashflow data for all properties
-        if (propertyIds.length > 0) {
-          const { data: allCashflows } = await supabase
-            .from('cashflow')
-            .select('*')
-            .in('property_id', propertyIds)
-            .order('effective_from', { ascending: false })
-
-          // Organize cashflows by property
-          const cashflowMap = new Map<string, Cashflow[]>()
-          for (const propertyId of propertyIds) {
-            const propertyCashflows = (allCashflows || [])
-              .filter((cf: any) => cf.property_id === propertyId)
-            cashflowMap.set(propertyId, propertyCashflows)
-          }
-          setCashflowsByProperty(cashflowMap)
+        const totalTime = performance.now() - startTime
+        console.log(`[Dashboard] Total load time: ${totalTime.toFixed(0)}ms`)
+        if (totalTime > 1000) {
+          console.warn(`[Dashboard] ⚠️ Slow load detected: ${totalTime.toFixed(0)}ms`)
         }
 
         setLoading(false)
