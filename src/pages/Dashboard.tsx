@@ -5,6 +5,10 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { PropertyCard } from '../components/PropertyCard'
 import { PortfolioCashflowSummary } from '../components/PortfolioCashflowSummary'
+import { PortfolioMetrics } from '../components/PortfolioMetrics'
+import { PortfolioValueChart } from '../components/PortfolioValueChart'
+import { PropertyComparisonChart } from '../components/PropertyComparisonChart'
+import { PropertyComparisonTable } from '../components/PropertyComparisonTable'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { formatCurrency } from '../lib/formatters'
 import { Database } from '../types/database'
@@ -22,6 +26,7 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [properties, setProperties] = useState<PropertyWithValue[]>([])
   const [cashflowsByProperty, setCashflowsByProperty] = useState<Map<string, Cashflow[]>>(new Map())
+  const [valueHistories, setValueHistories] = useState<Map<string, any[]>>(new Map())
 
   useEffect(() => {
     async function fetchProperties() {
@@ -57,11 +62,18 @@ export function Dashboard() {
           .in('property_id', propertyIds)
           .order('date_recorded', { ascending: false })
 
-        // Build a map of latest values per property
+        // Build a map of latest values per property AND value histories map
         const latestValues = new Map<string, number>()
-        for (const history of (allValueHistories || []) as any[]) {
-          if (!latestValues.has(history.property_id)) {
-            latestValues.set(history.property_id, history.value)
+        const historiesMap = new Map<string, any[]>()
+
+        for (const propertyId of propertyIds) {
+          const propertyHistories = (allValueHistories || []).filter(
+            (h: any) => h.property_id === propertyId
+          )
+          historiesMap.set(propertyId, propertyHistories)
+
+          if (propertyHistories.length > 0) {
+            latestValues.set(propertyId, (propertyHistories[0] as any).value)
           }
         }
 
@@ -72,6 +84,7 @@ export function Dashboard() {
         }))
 
         setProperties(propertiesWithValues)
+        setValueHistories(historiesMap)
 
         // Fetch all cashflow data for all properties
         if (propertyIds.length > 0) {
@@ -108,9 +121,7 @@ export function Dashboard() {
 
   // Calculate portfolio summary
   const totalValue = properties.reduce((sum, p) => sum + p.currentValue, 0)
-  const totalDebt = properties.reduce((sum, p) => sum + (p.current_loan_amount || 0), 0)
-  const totalEquity = totalValue - totalDebt
-  const avgLVR = totalValue > 0 ? (totalDebt / totalValue) * 100 : 0
+  const totalEquity = properties.reduce((sum, p) => sum + (p.currentValue - (p.current_loan_amount || 0)), 0)
 
   if (loading) {
     return <LoadingSpinner />
@@ -146,32 +157,42 @@ export function Dashboard() {
         {properties.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Portfolio Summary</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Value</p>
-                <p className="text-2xl font-bold text-primary-900">
+                <p className="text-3xl font-bold text-primary-900">
                   {formatCurrency(totalValue)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Equity</p>
-                <p className="text-2xl font-bold text-accent-600">
+                <p className="text-3xl font-bold text-accent-600">
                   {formatCurrency(totalEquity)}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total Debt</p>
-                <p className="text-2xl font-bold text-gray-700">
-                  {formatCurrency(totalDebt)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Average LVR</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {avgLVR.toFixed(1)}%
-                </p>
-              </div>
             </div>
+            <PortfolioMetrics properties={properties} />
+          </div>
+        )}
+
+        {/* Portfolio Value Over Time */}
+        {properties.length > 0 && (
+          <div className="mb-6">
+            <PortfolioValueChart valueHistories={valueHistories} properties={properties} />
+          </div>
+        )}
+
+        {/* Property Comparison Chart */}
+        {properties.length > 0 && (
+          <div className="mb-6">
+            <PropertyComparisonChart properties={properties} />
+          </div>
+        )}
+
+        {/* Property Comparison Table */}
+        {properties.length > 0 && (
+          <div className="mb-6">
+            <PropertyComparisonTable properties={properties} valueHistories={valueHistories} />
           </div>
         )}
 
@@ -181,24 +202,6 @@ export function Dashboard() {
             <PortfolioCashflowSummary cashflowsByProperty={cashflowsByProperty} />
           </div>
         )}
-
-        {/* Advanced Dashboard Link */}
-        <div className="bg-gradient-to-r from-primary-500 to-primary-700 rounded-lg shadow-md p-6 mb-6 text-white">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-xl font-bold mb-2">Advanced Analytics</h3>
-              <p className="text-primary-100">
-                View detailed insights, comparison charts, and export your portfolio data
-              </p>
-            </div>
-            <Link
-              to="/advanced-dashboard"
-              className="bg-white text-primary-700 py-2 px-6 rounded-lg hover:bg-gray-100 transition-colors font-medium whitespace-nowrap"
-            >
-              View Dashboard
-            </Link>
-          </div>
-        </div>
 
         {/* Properties List */}
         <div className="bg-white rounded-lg shadow-md p-6">
