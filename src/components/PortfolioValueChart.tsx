@@ -8,37 +8,60 @@ interface PortfolioValueChartProps {
 }
 
 export function PortfolioValueChart({ valueHistories, properties }: PortfolioValueChartProps) {
-  // Aggregate value history by date
+  // Aggregate value history by date with proper forward-fill
   const aggregateByDate = () => {
-    const dateMap = new Map<string, number>()
+    // Collect all unique dates from all properties
+    const allDates = new Set<string>()
 
-    // Add all value history entries
+    // Add purchase dates
+    properties.forEach((property) => {
+      allDates.add(property.purchase_date)
+    })
+
+    // Add value history dates
     valueHistories.forEach((history) => {
       history.forEach((entry) => {
-        const date = entry.date_recorded
-        const currentTotal = dateMap.get(date) || 0
-        dateMap.set(date, currentTotal + entry.value)
+        allDates.add(entry.date_recorded)
       })
     })
 
-    // Add purchase dates (initial values)
-    properties.forEach((property) => {
-      const purchaseDate = property.purchase_date
-      if (!dateMap.has(purchaseDate)) {
-        // If no history for this date, set to purchase price
-        const currentTotal = dateMap.get(purchaseDate) || 0
-        dateMap.set(purchaseDate, currentTotal + property.purchase_price)
+    // Sort dates
+    const sortedDates = Array.from(allDates).sort((a, b) =>
+      new Date(a).getTime() - new Date(b).getTime()
+    )
+
+    // For each date, calculate total portfolio value
+    const chartData = sortedDates.map((date) => {
+      let totalValue = 0
+
+      // For each property, find its value at this date
+      properties.forEach((property) => {
+        // If property hasn't been purchased yet, skip it
+        if (new Date(date) < new Date(property.purchase_date)) {
+          return
+        }
+
+        // Get this property's value histories
+        const propertyHistory = valueHistories.get(property.id) || []
+
+        // Find the most recent value up to this date
+        let propertyValue = property.purchase_price
+        for (const entry of propertyHistory) {
+          if (new Date(entry.date_recorded) <= new Date(date)) {
+            propertyValue = entry.value
+            break // histories are sorted DESC, so first match is most recent
+          }
+        }
+
+        totalValue += propertyValue
+      })
+
+      return {
+        date,
+        value: totalValue,
+        formattedDate: format(parseISO(date), 'dd/MM/yyyy'),
       }
     })
-
-    // Convert to array and sort by date
-    const chartData = Array.from(dateMap.entries())
-      .map(([date, value]) => ({
-        date,
-        value,
-        formattedDate: format(parseISO(date), 'dd/MM/yyyy'),
-      }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
     return chartData
   }

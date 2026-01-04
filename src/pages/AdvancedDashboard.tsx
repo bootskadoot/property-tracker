@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { ProFeatureGate } from '../components/ProFeatureGate'
+import { PortfolioMetrics } from '../components/PortfolioMetrics'
 import { PortfolioValueChart } from '../components/PortfolioValueChart'
 import { PropertyComparisonChart } from '../components/PropertyComparisonChart'
 import { PropertyComparisonTable } from '../components/PropertyComparisonTable'
@@ -110,6 +111,11 @@ export function AdvancedDashboard() {
         </div>
 
         <ProFeatureGate featureName="Advanced Dashboard">
+          {/* Portfolio Performance Metrics */}
+          <div className="mb-6">
+            <PortfolioMetrics properties={properties} />
+          </div>
+
           {/* Portfolio Value Over Time */}
           <div className="mb-6">
             <PortfolioValueChart valueHistories={valueHistories} properties={properties} />
