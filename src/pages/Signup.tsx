@@ -19,8 +19,8 @@ export function Signup() {
       setError(signUpError.message)
       setLoading(false)
     } else {
-      // Navigate to onboarding after successful signup
-      navigate('/onboarding')
+      // Navigate to dashboard after successful signup
+      navigate('/dashboard')
     }
   }
 
