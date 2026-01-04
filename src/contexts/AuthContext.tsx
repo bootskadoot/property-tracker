@@ -70,15 +70,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const { data: { session } } = await supabase.auth.getSession()
         setUser(session?.user ?? null)
 
+        // Set loading to false immediately - don't wait for profile
+        setLoading(false)
+
+        // Fetch profile in background (non-blocking)
         if (session?.user) {
-          const profile = await fetchUserProfile(session.user.id)
-          setUserProfile(profile)
+          fetchUserProfile(session.user.id).then(profile => {
+            setUserProfile(profile)
+          }).catch(err => {
+            console.error('Background profile fetch failed:', err)
+            // Continue without profile - not critical
+          })
         }
       } catch (error) {
         console.error('Error checking user session:', error)
         // Don't block the app - continue with no user
-      } finally {
-        // ALWAYS set loading to false, even if there's an error
         setLoading(false)
       }
     }
@@ -89,11 +95,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null)
 
-      // Only fetch profile on actual sign-in events, not on every tab focus
-      // This prevents unnecessary refetches when switching tabs
+      // Fetch profile in background on sign-in events (non-blocking)
       if (session?.user && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
-        const profile = await fetchUserProfile(session.user.id)
-        setUserProfile(profile)
+        fetchUserProfile(session.user.id).then(profile => {
+          setUserProfile(profile)
+        }).catch(err => {
+          console.error('Background profile fetch failed on auth change:', err)
+        })
       } else if (!session?.user) {
         setUserProfile(null)
       }
@@ -111,10 +119,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     if (data.user && !error) {
       // User profile will be created automatically by database trigger
-      // Wait a moment for trigger to complete
-      await new Promise(resolve => setTimeout(resolve, 500))
-      const profile = await fetchUserProfile(data.user.id)
-      setUserProfile(profile)
+      // Fetch profile in background (non-blocking)
+      const userId = data.user.id
+      setTimeout(() => {
+        fetchUserProfile(userId).then(profile => {
+          setUserProfile(profile)
+        }).catch(err => {
+          console.error('Background profile fetch failed on signup:', err)
+        })
+      }, 500)
     }
 
     return { error }
