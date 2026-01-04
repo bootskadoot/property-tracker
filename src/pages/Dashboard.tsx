@@ -4,11 +4,13 @@ import { Plus } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { PropertyCard } from '../components/PropertyCard'
+import { PortfolioCashflowSummary } from '../components/PortfolioCashflowSummary'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { formatCurrency } from '../lib/formatters'
 import { Database } from '../types/database'
 
 type Property = Database['public']['Tables']['properties']['Row']
+type Cashflow = Database['public']['Tables']['cashflow']['Row']
 
 interface PropertyWithValue extends Property {
   currentValue: number
@@ -19,6 +21,7 @@ export function Dashboard() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [properties, setProperties] = useState<PropertyWithValue[]>([])
+  const [cashflowsByProperty, setCashflowsByProperty] = useState<Map<string, Cashflow[]>>(new Map())
 
   useEffect(() => {
     async function fetchProperties() {
@@ -69,6 +72,25 @@ export function Dashboard() {
         }))
 
         setProperties(propertiesWithValues)
+
+        // Fetch all cashflow data for all properties
+        if (propertyIds.length > 0) {
+          const { data: allCashflows } = await supabase
+            .from('cashflow')
+            .select('*')
+            .in('property_id', propertyIds)
+            .order('effective_from', { ascending: false })
+
+          // Organize cashflows by property
+          const cashflowMap = new Map<string, Cashflow[]>()
+          for (const propertyId of propertyIds) {
+            const propertyCashflows = (allCashflows || [])
+              .filter((cf: any) => cf.property_id === propertyId)
+            cashflowMap.set(propertyId, propertyCashflows)
+          }
+          setCashflowsByProperty(cashflowMap)
+        }
+
         setLoading(false)
       } catch (err) {
         console.error('Unexpected error in fetchProperties:', err)
@@ -150,6 +172,13 @@ export function Dashboard() {
                 </p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Portfolio Cashflow Summary */}
+        {properties.length > 0 && (
+          <div className="mb-6">
+            <PortfolioCashflowSummary cashflowsByProperty={cashflowsByProperty} />
           </div>
         )}
 

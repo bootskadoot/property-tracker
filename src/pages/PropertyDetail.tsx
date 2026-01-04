@@ -4,11 +4,13 @@ import { ArrowLeft, Home, DollarSign, TrendingUp, Percent } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { LoadingSpinner } from '../components/LoadingSpinner'
+import { CashflowSummary } from '../components/CashflowSummary'
 import { formatCurrency, formatDate, calculateEquity, calculateLVR, calculateGrowth, calculateGrowthPercentage } from '../lib/formatters'
 import { Database } from '../types/database'
 
 type Property = Database['public']['Tables']['properties']['Row']
 type ValueHistory = Database['public']['Tables']['value_history']['Row']
+type Cashflow = Database['public']['Tables']['cashflow']['Row']
 
 export function PropertyDetail() {
   const { id } = useParams<{ id: string }>()
@@ -17,6 +19,7 @@ export function PropertyDetail() {
   const [loading, setLoading] = useState(true)
   const [property, setProperty] = useState<Property | null>(null)
   const [valueHistory, setValueHistory] = useState<ValueHistory[]>([])
+  const [cashflows, setCashflows] = useState<Cashflow[]>([])
   const [currentValue, setCurrentValue] = useState(0)
   const [showAddValuation, setShowAddValuation] = useState(false)
   const [addingValuation, setAddingValuation] = useState(false)
@@ -59,6 +62,20 @@ export function PropertyDetail() {
     const history = (historyData || []) as any
     setValueHistory(history)
     setCurrentValue(history[0]?.value || (propertyData as any).purchase_price)
+
+    // Fetch cashflow data
+    const { data: cashflowData, error: cashflowError } = await supabase
+      .from('cashflow')
+      .select('*')
+      .eq('property_id', id)
+      .order('effective_from', { ascending: false })
+
+    if (cashflowError) {
+      console.error('Error fetching cashflows:', cashflowError)
+    } else {
+      setCashflows(cashflowData || [])
+    }
+
     setLoading(false)
   }
 
@@ -266,20 +283,20 @@ export function PropertyDetail() {
             <h2 className="text-xl font-bold text-gray-900">Cashflow Tracking</h2>
             <Link
               to={`/cashflow?propertyId=${property.id}`}
-              className="text-primary-500 hover:text-primary-600 font-medium text-sm"
+              className="bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 transition-colors font-medium text-sm"
             >
-              View Details →
+              {cashflows.length > 0 ? 'Edit Cashflow' : 'Add Cashflow'}
             </Link>
           </div>
-          <p className="text-gray-600 text-sm mb-4">
-            Track monthly income and expenses for this property
-          </p>
-          <Link
-            to={`/cashflow?propertyId=${property.id}`}
-            className="inline-block bg-primary-500 text-white py-2 px-6 rounded-lg hover:bg-primary-600 transition-colors font-medium"
-          >
-            Manage Cashflow
-          </Link>
+
+          {cashflows.length > 0 ? (
+            <CashflowSummary cashflows={cashflows} />
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">No cashflow data yet for this property</p>
+              <p className="text-sm text-gray-400">Track monthly income and expenses to see your cashflow summary</p>
+            </div>
+          )}
         </div>
 
         {/* Value History */}
